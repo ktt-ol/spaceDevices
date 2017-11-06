@@ -1,0 +1,134 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <base href="/">
+    <title>Space Devices</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width">
+
+    <link rel="stylesheet" href="assets/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/css/custom.css">
+</head>
+
+<body>
+
+<header class="hero-unit" id="banner">
+    <div class="container">
+        <h1>
+            {{.name}} <small>[{{.deviceName}}]</small>
+        </h1>
+
+        <p class="lead">
+            Deine Mac Adresse lautet: {{.mac}}
+        </p>
+    </div>
+</header>
+
+{{if .noMacFound }}
+<div class="container info-problem">
+
+    <div class="alert alert-warning" role="alert">
+        Deine Mac Adresse wurde nicht gefunden. Evt. funktioniert es in ein paar Minuten.
+        <button onclick="window.location.reload()" class="btn btn-primary">Neu laden</button>
+    </div>
+
+</div>
+{{end}}
+
+
+{{if .isLocallyAdministered }}
+<div class="container info-problem">
+
+    <div class="alert alert-warning" role="alert">
+        Deine Mac Adresse wird zufällig generiert, daher kannst du dafür keinen Namen eingeben. Bei Windows 10 kann man
+        das angeblich ändern.
+    </div>
+
+</div>
+{{end}}
+
+{{if (not .isLocallyAdministered) and (not .noMacFound)}}
+<div class="container mac-update">
+    <div class="row">
+        <div class="col-lg-12">
+            <h1 class="page-header">Ändern</h1>
+            Ändere deinen Namen auf <a href="https://status.kreativitaet-trifft-technik.de">Status</a>.
+            Der wird immer dann angezeigt, wenn du mit diesem Gerät im Mainframe WLAN bist.
+        </div>
+    </div>
+    <form class="mac-form" action="/" method="post" onsubmit="onSubmit()" id="form">
+        <input type="hidden" name="action" value="update" id="action" />
+        <input type="hidden" name="secToken" value="{{.secToken}}"  />
+        <div class="form-group">
+            <label for="name">Name/Alias</label>
+            <input type="text" class="form-control" id="name" name="name" placeholder="Dein Name" value="{{.name}}" required>
+        </div>
+        <div class="form-group">
+            <label for="deviceName">Gerätename</label>
+            <input type="text" class="form-control" id="deviceName" name="deviceName" placeholder="Notebook" value="{{.deviceName}}">
+        </div>
+        <div class="form-group">
+            <label>Sichtbarkeit</label>
+            <a class="help-link pull-right" href="help.html">Hilfe! Was heißt das?</a>
+            <div class="radio">
+                <label>
+                    <input type="radio" name="visibility" value="3" {{if eq .visibility 3}}checked{{end}}>
+                    Alles anzeigen, d.h. Name/Alias und Gerätename.
+                </label>
+            </div>
+            <div class="radio">
+                <label>
+                    <input type="radio" name="visibility" value="2" {{if eq .visibility 2}}checked{{end}}>
+                    Mit Name/Alias anzeigen.
+                </label>
+            </div>
+            <div class="radio">
+                <label>
+                    <input type="radio" name="visibility" value="1" {{if eq .visibility 1}}checked{{end}}>
+                    Als anonyme Person anzeigen.
+                </label>
+            </div>
+            <div class="radio">
+                <label>
+                    <input type="radio" name="visibility" value="0" {{if eq .visibility 0}}checked{{end}}>
+                    Gar nicht anzeigen. Die <u>wirklich</u> paranoide Option. Meistens ist der obere Punkt besser.
+                </label>
+            </div>
+        </div>
+        <div class="form-group">
+            <a class="btn btn-danger" onclick="deleteName()">Eintrag löschen</a>
+            <button class="btn btn-primary pull-right" type="submit" id="submitButton">Speichern</button>
+        </div>
+        <div class="form-group" id="waiting" style="display: none">
+            <div class="spinner">
+                <div class="bounce1"></div>
+                <div class="bounce2"></div>
+                <div class="bounce3"></div>
+            </div>
+        </div>
+    </form>
+
+
+</div>
+{{end}}
+
+<footer class="footer">
+    <div class="container">
+        <p><a href="https://github.com/ktt-ol/spaceDevices">https://github.com/ktt-ol/spaceDevices</a></p>
+    </div>
+</footer>
+
+<script>
+function onSubmit() {
+  document.getElementById("waiting").style.display = "block";
+}
+function deleteName() {
+  document.getElementById("action").value = "delete";
+  document.getElementById("form").submit();
+}
+</script>
+
+</body>
+</html>

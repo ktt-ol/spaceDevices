@@ -1,0 +1,6 @@
+.idea/
+.vscode/
+config.toml
+vendor/
+userDb.json
+masterDb.json

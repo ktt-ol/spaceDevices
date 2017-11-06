@@ -1,0 +1,53 @@
+[server]
+host = "0.0.0.0"
+port = 9000
+https = false
+# optional if https is false
+keyFile = "...your.key"
+# optional if https is false
+certFile = "...your.cer"
+
+[mqtt]
+url = "tls://server:8883"
+# optional
+certFile = "server.cert.pem"
+username = "user"
+password = "pass"
+
+[macDb]
+# JSON file, NOT modified by the app
+# Format:
+#{
+# "00:01:02:03:04:05": {
+#  "name": "a name",
+#  "device-type": "a type",
+#  "visibility": "ignore"
+# },
+# "aa:bb:cc:dd:ee:ff": {
+#  "name": "another name",
+#  "device-type": "server",
+#  "visibility": "ignore"
+# },
+masterFile = "masterDb.json"
+# JSON file, modified by this app
+# Format:
+#{
+# "00:01:02:03:04:05": {
+#  "name": "a name",
+#  "visibility": "show",
+#  "ts": 1427737817755
+# },
+# "aa:bb:cc:dd:ee:ff": {
+#  "name": "another name",
+#  "visibility": "show",
+#  "ts": 1427737817755
+# },
+userFile = "userDb.json"
+
+#  mqtt: {
+#    server: 'tls://spacegate.mainframe.lan',
+#    ca: extConfFolder + '/spacegate.crt',
+#    topic: '/net/devices',
+#    username: 'devices',
+#    password: '6AroZF3A34E6bocd'
+#  },

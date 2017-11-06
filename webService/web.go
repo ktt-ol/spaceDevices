@@ -1,0 +1,138 @@
+package webService
+
+import (
+	"fmt"
+	"net"
+	"net/http"
+	"time"
+
+	"github.com/gin-contrib/gzip"
+	"github.com/gin-gonic/gin"
+	"github.com/ktt-ol/spaceDevices/conf"
+	"github.com/ktt-ol/spaceDevices/db"
+	"github.com/ktt-ol/spaceDevices/mqtt"
+	"github.com/sirupsen/logrus"
+)
+
+var logger = logrus.WithField("where", "webSrv")
+
+var mqttHandler *mqtt.MqttHandler
+var macDb *db.UserMacSettings
+var xsrfCheck *SimpleXSRFCheck
+
+func StartWebService(conf conf.ServerConf, _mqttHandler *mqtt.MqttHandler, _macDb *db.UserMacSettings) {
+	mqttHandler = _mqttHandler
+	macDb = _macDb
+	xsrfCheck = NewSimpleXSRFCheck()
+
+	router := gin.Default()
+	router.Use(gzip.Gzip(gzip.DefaultCompression))
+
+	router.Static("/assets", "webUI/assets")
+	router.LoadHTMLGlob("webUI/templates/*.html")
+	router.GET("/", overviewPageHandler)
+	router.POST("/", changeInfoHandler)
+	router.GET("/help.html", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "help.html", gin.H{})
+	})
+
+	addr := fmt.Sprintf("%s:%d", conf.Host, conf.Port)
+	if conf.Https {
+		router.RunTLS(addr, conf.CertFile, conf.KeyFile)
+	} else {
+		router.Run(addr)
+	}
+}
+
+func sendError(c *gin.Context, msg string) {
+	c.String(http.StatusBadRequest, "Error: "+msg)
+	c.Abort()
+}
+
+func overviewPageHandler(c *gin.Context) {
+	ip, _, _ := net.SplitHostPort(c.Request.RemoteAddr)
+	logger.WithField("ip", ip).Debug("Request ip.")
+
+	name := "???"
+	mac := "???"
+	deviceName := ""
+	visibility := db.Visibility(99)
+	isLocallyAdministered := false
+	macNotFound := false
+	if info, ok := mqttHandler.GetByIp(ip); ok {
+		if userInfo, ok := macDb.Get(info.Mac); ok {
+			mac = info.Mac
+			name = userInfo.Name
+			deviceName = userInfo.DeviceName
+			visibility = userInfo.Visibility
+			isLocallyAdministered = db.IsMacLocallyAdministered(mac)
+		}
+	} else {
+		macNotFound = true
+	}
+
+	c.HTML(http.StatusOK, "index.html", gin.H{
+		"secToken":              xsrfCheck.NewToken(ip),
+		"name":                  name,
+		"mac":                   mac,
+		"deviceName":            deviceName,
+		"visibility":            visibility,
+		"isLocallyAdministered": isLocallyAdministered,
+		"macNotFound":           macNotFound,
+	})
+}
+
+type changeData struct {
+	Action        string `form:"action" binding:"required"`
+	SecToken      string `form:"secToken" binding:"required"`
+	Name          string `form:"name" binding:"required"`
+	DeviceName    string `form:"deviceName"`
+	VisibilityNum uint8  `form:"visibility" binding:"required"`
+}
+
+func changeInfoHandler(c *gin.Context) {
+	ip, _, _ := net.SplitHostPort(c.Request.RemoteAddr)
+	info, ok := mqttHandler.GetByIp(ip)
+	if !ok {
+		logger.WithField("ip", ip).Error("No data for ip found.")
+		sendError(c, "No data for your ip found.")
+		return
+	}
+
+	xsrfCheck.stopCleaner <- true
+
+	logger = logger.WithField("mac", info.Mac)
+
+	var form changeData
+	if err := c.Bind(&form); err != nil {
+		logger.WithError(err).Error("Invalid binding.")
+		sendError(c, "Invalid binding.")
+		return
+	}
+
+	if !xsrfCheck.CheckAndClearToken(ip, form.SecToken) {
+		logger.WithFields(logrus.Fields{"ip": ip, "secToken": form.SecToken}).Error("Invalid secToken")
+		sendError(c, "Invalid secToken")
+		return
+	}
+
+	if form.Action == "delete" {
+		logger.WithField("user", form.Name).Info("Delete user info.")
+
+		macDb.Delete(info.Mac)
+	} else if form.Action == "update" {
+		logger.WithField("data", fmt.Sprintf("%#v", form)).Info("Change user info.")
+
+		visibility, ok := db.ParseVisibility(form.VisibilityNum)
+		if !ok {
+			logger.WithField("VisibilityNum", form.VisibilityNum).Error("Invalid visibility.")
+			sendError(c, "Invalid 'visibility' value")
+			return
+		}
+
+		entry := db.UserMacInfo{Name: form.Name, DeviceName: form.DeviceName, Visibility: visibility, Ts: time.Now().Unix() * 1000}
+		macDb.Set(info.Mac, entry)
+	}
+
+	c.Redirect(http.StatusSeeOther, "/")
+}
