@@ -16,12 +16,12 @@ import (
 
 var logger = logrus.WithField("where", "webSrv")
 
-var mqttHandler *mqtt.MqttHandler
-var macDb *db.UserMacSettings
+var devices *mqtt.DeviceData
+var macDb db.UserDb
 var xsrfCheck *SimpleXSRFCheck
 
-func StartWebService(conf conf.ServerConf, _mqttHandler *mqtt.MqttHandler, _macDb *db.UserMacSettings) {
-	mqttHandler = _mqttHandler
+func StartWebService(conf conf.ServerConf, _devices *mqtt.DeviceData, _macDb db.UserDb) {
+	devices = _devices
 	macDb = _macDb
 	xsrfCheck = NewSimpleXSRFCheck()
 
@@ -59,7 +59,7 @@ func overviewPageHandler(c *gin.Context) {
 	visibility := db.Visibility(99)
 	isLocallyAdministered := false
 	macNotFound := false
-	if info, ok := mqttHandler.GetByIp(ip); ok {
+	if info, ok := devices.GetByIp(ip); ok {
 		if userInfo, ok := macDb.Get(info.Mac); ok {
 			mac = info.Mac
 			name = userInfo.Name
@@ -83,23 +83,21 @@ func overviewPageHandler(c *gin.Context) {
 }
 
 type changeData struct {
-	Action        string `form:"action" binding:"required"`
-	SecToken      string `form:"secToken" binding:"required"`
-	Name          string `form:"name" binding:"required"`
-	DeviceName    string `form:"deviceName"`
-	VisibilityNum uint8  `form:"visibility" binding:"required"`
+	Action     string        `form:"action" binding:"required"`
+	SecToken   string        `form:"secToken" binding:"required"`
+	Name       string        `form:"name" binding:"required"`
+	DeviceName string        `form:"deviceName"`
+	Visibility db.Visibility `form:"visibility" binding:"required"`
 }
 
 func changeInfoHandler(c *gin.Context) {
 	ip, _, _ := net.SplitHostPort(c.Request.RemoteAddr)
-	info, ok := mqttHandler.GetByIp(ip)
+	info, ok := devices.GetByIp(ip)
 	if !ok {
 		logger.WithField("ip", ip).Error("No data for ip found.")
 		sendError(c, "No data for your ip found.")
 		return
 	}
-
-	xsrfCheck.stopCleaner <- true
 
 	logger = logger.WithField("mac", info.Mac)
 
@@ -123,14 +121,14 @@ func changeInfoHandler(c *gin.Context) {
 	} else if form.Action == "update" {
 		logger.WithField("data", fmt.Sprintf("%#v", form)).Info("Change user info.")
 
-		visibility, ok := db.ParseVisibility(form.VisibilityNum)
-		if !ok {
-			logger.WithField("VisibilityNum", form.VisibilityNum).Error("Invalid visibility.")
-			sendError(c, "Invalid 'visibility' value")
-			return
-		}
+		// visibility, ok := db.ParseVisibility(form.VisibilityNum)
+		// if !ok {
+		// 	logger.WithField("VisibilityNum", form.VisibilityNum).Error("Invalid visibility.")
+		// 	sendError(c, "Invalid 'visibility' value")
+		// 	return
+		// }
 
-		entry := db.UserMacInfo{Name: form.Name, DeviceName: form.DeviceName, Visibility: visibility, Ts: time.Now().Unix() * 1000}
+		entry := db.UserDbEntry{Name: form.Name, DeviceName: form.DeviceName, Visibility: form.Visibility, Ts: time.Now().Unix() * 1000}
 		macDb.Set(info.Mac, entry)
 	}
 

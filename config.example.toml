@@ -1,3 +1,5 @@
+# COPY THIS TO config.toml 
+
 [server]
 host = "0.0.0.0"
 port = 9000
@@ -13,6 +15,15 @@ url = "tls://server:8883"
 certFile = "server.cert.pem"
 username = "user"
 password = "pass"
+
+[[location]]
+name = "Bar"
+ids = [1, 2]
+
+[[location]]
+name = "Club"
+ids = [4]
+
 
 [macDb]
 # JSON file, NOT modified by the app

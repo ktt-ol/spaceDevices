@@ -26,11 +26,13 @@
     </div>
 </header>
 
-{{if .noMacFound }}
+{{if .macNotFound }}
 <div class="container info-problem">
 
     <div class="alert alert-warning" role="alert">
         Deine Mac Adresse wurde nicht gefunden. Evt. funktioniert es in ein paar Minuten.
+        <br>
+        <br>
         <button onclick="window.location.reload()" class="btn btn-primary">Neu laden</button>
     </div>
 
@@ -49,7 +51,8 @@
 </div>
 {{end}}
 
-{{if (not .isLocallyAdministered) and (not .noMacFound)}}
+{{if not .isLocallyAdministered}}
+{{if not .macNotFound}}
 <div class="container mac-update">
     <div class="row">
         <div class="col-lg-12">
@@ -74,25 +77,25 @@
             <a class="help-link pull-right" href="help.html">Hilfe! Was heißt das?</a>
             <div class="radio">
                 <label>
-                    <input type="radio" name="visibility" value="3" {{if eq .visibility 3}}checked{{end}}>
+                    <input type="radio" name="visibility" value="all" {{if eq .visibility "all"}}checked{{end}}>
                     Alles anzeigen, d.h. Name/Alias und Gerätename.
                 </label>
             </div>
             <div class="radio">
                 <label>
-                    <input type="radio" name="visibility" value="2" {{if eq .visibility 2}}checked{{end}}>
+                    <input type="radio" name="visibility" value="user" {{if eq .visibility "user"}}checked{{end}}>
                     Mit Name/Alias anzeigen.
                 </label>
             </div>
             <div class="radio">
                 <label>
-                    <input type="radio" name="visibility" value="1" {{if eq .visibility 1}}checked{{end}}>
+                    <input type="radio" name="visibility" value="anon" {{if eq .visibility "anon"}}checked{{end}}>
                     Als anonyme Person anzeigen.
                 </label>
             </div>
             <div class="radio">
                 <label>
-                    <input type="radio" name="visibility" value="0" {{if eq .visibility 0}}checked{{end}}>
+                    <input type="radio" name="visibility" value="ignore" {{if eq .visibility "ignore"}}checked{{end}}>
                     Gar nicht anzeigen. Die <u>wirklich</u> paranoide Option. Meistens ist der obere Punkt besser.
                 </label>
             </div>
@@ -112,6 +115,7 @@
 
 
 </div>
+{{end}}
 {{end}}
 
 <footer class="footer">

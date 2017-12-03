@@ -17,7 +17,12 @@ func main() {
 	config := conf.LoadConfig(CONFIG_FILE)
 
 	//spaceDevices.EnableMqttDebugLogging()
+
+	userDb := db.NewUserDb(config.MacDb)
+	masterDb := db.NewMasterDb(config.MacDb)
+
 	mqttHandler := mqtt.NewMqttHandler(config.Mqtt)
-	macDb := db.NewUserMacSettings(config.MacDb)
-	webService.StartWebService(config.Server, mqttHandler, macDb)
+	data := mqtt.NewDeviceData(mqttHandler, masterDb, userDb)
+
+	webService.StartWebService(config.Server, data, userDb)
 }

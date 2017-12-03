@@ -13,19 +13,16 @@ import (
 )
 
 const CLIENT_ID = "spaceDevices2"
+const TOPIC_SESSIONS = "/net/wlan-sessions"
 
-var logger = log.WithField("where", "mqtt")
+// ATTENTION: test topic!
+const TOPIC_DEVICES = "/test/net_devices"
+
+var mqttLogger = log.WithField("where", "mqtt")
 
 type MqttHandler struct {
-	WifiSessionList []WifiSession
-	// more to come, e.g. LanSessions
-}
-
-type WifiSession struct {
-	Ip   string
-	Mac  string
-	Vlan string
-	AP   int
+	client      mqtt.Client
+	newDataChan chan []byte
 }
 
 //func init() {
@@ -72,73 +69,91 @@ func NewMqttHandler(conf conf.MqttConf) *MqttHandler {
 	opts.SetAutoReconnect(true)
 	opts.SetKeepAlive(10 * time.Second)
 	opts.SetMaxReconnectInterval(5 * time.Minute)
+	opts.SetWill(TOPIC_DEVICES, emptyPeopleAndDevices(), 0, true)
 
-	handler := MqttHandler{}
+	handler := MqttHandler{newDataChan: make(chan []byte)}
 	opts.SetOnConnectHandler(handler.onConnect)
 	opts.SetConnectionLostHandler(handler.onConnectionLost)
 
-	client := mqtt.NewClient(opts)
-	if tok := client.Connect(); tok.WaitTimeout(5*time.Second) && tok.Error() != nil {
-		logger.WithError(tok.Error()).Fatal("Could not connect to mqtt server.")
+	handler.client = mqtt.NewClient(opts)
+	if tok := handler.client.Connect(); tok.WaitTimeout(5*time.Second) && tok.Error() != nil {
+		mqttLogger.WithError(tok.Error()).Fatal("Could not connect to mqtt server.")
 	}
 
 	return &handler
 }
 
-func (h *MqttHandler) onConnect(client mqtt.Client) {
-	logger.Info("connected")
+func (h *MqttHandler) GetNewDataChannel() chan []byte {
+	return h.newDataChan
+}
 
-	err := subscribe(client, "/net/wlan-sessions",
+func (h *MqttHandler) SendPeopleAndDevices(data PeopleAndDevices) {
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		mqttLogger.Errorln("Invalid people json", err)
+		return
+	}
+
+	token := h.client.Publish(TOPIC_DEVICES, 0, true, string(bytes))
+	ok := token.WaitTimeout(time.Duration(time.Second * 10))
+	if !ok {
+		mqttLogger.Infoln("Error sending devices to:", TOPIC_DEVICES)
+		return
+	}
+}
+
+func (h *MqttHandler) onConnect(client mqtt.Client) {
+	mqttLogger.Info("connected")
+
+	err := subscribe(client, TOPIC_SESSIONS,
 		func(client mqtt.Client, message mqtt.Message) {
-			//logger.Debug("new wifi sessions")
-			mock := `{  "38134": {
-    "last-auth": 1509211121,
-    "vlan": "default",
-    "stats": {
-      "rx-multicast-pkts": 0,
-      "rx-unicast-pkts": 292,
-      "tx-unicast-pkts": 654,
-      "rx-unicast-bytes": 20510,
-      "tx-unicast-bytes": 278565,
-      "rx-multicast-bytes": 0
-    },
-    "ssid": "mainframe",
-    "ip": "::1",
-    "hostname": "-",
-    "last-snr": 47,
-    "last-rate-mbits": "6",
-    "ap": 1,
-    "mac": "10:68:3f:bb:bb:bb",
-    "radio": 2,
-    "userinfo": {
-      "name": "Holger",
-      "visibility": "show",
-      "ts": 1427737817755
-    },
-    "session-start": 1509211121,
-    "last-rssi-dbm": -48,
-    "last-activity": 1509211584
-  }}`
-			// message.Payload()
-			h.WifiSessionList = parseWifiSessions([]byte(mock))
+			mqttLogger.Debug("new wifi sessions")
+			/*
+							mock := []byte(`{  "38134": {
+				    "last-auth": 1509211121,
+				    "vlan": "default",
+				    "stats": {
+				      "rx-multicast-pkts": 0,
+				      "rx-unicast-pkts": 292,
+				      "tx-unicast-pkts": 654,
+				      "rx-unicast-bytes": 20510,
+				      "tx-unicast-bytes": 278565,
+				      "rx-multicast-bytes": 0
+				    },
+				    "ssid": "mainframe",
+				    "ip": "::1",
+				    "hostname": "-",
+				    "last-snr": 47,
+				    "last-rate-mbits": "6",
+				    "ap": 1,
+				    "mac": "10:68:3f:bb:bb:bb",
+				    "radio": 2,
+				    "userinfo": {
+				      "name": "Holger",
+				      "visibility": "show",
+				      "ts": 1427737817755
+				    },
+				    "session-start": 1509211121,
+				    "last-rssi-dbm": -48,
+				    "last-activity": 1509211584
+				  }}`)
+			*/
+			select {
+			// case h.newDataChan <- mock:
+			case h.newDataChan <- message.Payload():
+				break
+			default:
+				mqttLogger.Println("No one receives the message.")
+			}
+
 		})
 	if err != nil {
-		logger.WithError(err).Fatal("Could not subscribe")
+		mqttLogger.WithError(err).Fatal("Could not subscribe")
 	}
 }
 
 func (h *MqttHandler) onConnectionLost(client mqtt.Client, err error) {
-	logger.WithError(err).Error("Connection lost.")
-}
-
-func (h *MqttHandler) GetByIp(ip string) (WifiSession, bool) {
-	for _, v := range h.WifiSessionList {
-		if v.Ip == ip {
-			return v, true
-		}
-	}
-
-	return WifiSession{}, false
+	mqttLogger.WithError(err).Error("Connection lost.")
 }
 
 func subscribe(client mqtt.Client, topic string, cb mqtt.MessageHandler) error {
@@ -150,78 +165,32 @@ func subscribe(client mqtt.Client, topic string, cb mqtt.MessageHandler) error {
 
 func defaultCertPool(certFile string) *x509.CertPool {
 	if certFile == "" {
-		log.Debug("No certFile given, using system pool")
+		mqttLogger.Debug("No certFile given, using system pool")
 		pool, err := x509.SystemCertPool()
 		if err != nil {
-			log.WithError(err).Fatal("Could not create system cert pool.")
+			mqttLogger.WithError(err).Fatal("Could not create system cert pool.")
 		}
 		return pool
 	}
 
 	fileData, err := ioutil.ReadFile(certFile)
 	if err != nil {
-		log.WithError(err).Fatal("Could not read given cert file.")
+		mqttLogger.WithError(err).Fatal("Could not read given cert file.")
 	}
 
 	certs := x509.NewCertPool()
 	if !certs.AppendCertsFromPEM(fileData) {
-		log.Fatal("unable to add given certificate to CertPool")
+		mqttLogger.Fatal("unable to add given certificate to CertPool")
 	}
 
 	return certs
 }
 
-func parseWifiSessions(rawData []byte) []WifiSession {
-	sessionsList := []WifiSession{}
-
-	// we don't use a struct here, because we are interested in a small subset, only.
-	var sessionData map[string]interface{}
-	if err := json.Unmarshal(rawData, &sessionData); err != nil {
-		log.WithFields(log.Fields{
-			"rawData": string(rawData),
-			"error":   err,
-		}).Error("Unable to unmarshal wifi session json.")
-		return sessionsList
+func emptyPeopleAndDevices() string {
+	pad := PeopleAndDevices{}
+	bytes, err := json.Marshal(pad)
+	if err != nil {
+		mqttLogger.WithError(err).Panic()
 	}
-
-	for _, v := range sessionData {
-		entry, ok := v.(map[string]interface{})
-		if !ok {
-			log.WithFields(log.Fields{
-				"data": v,
-			}).Error("Unable to unmarshal wifi session json. Unexpected structure")
-			return sessionsList
-		}
-
-		vlan, ok := entry["vlan"].(string)
-		if !ok {
-			logParseError("vlan", v)
-			return []WifiSession{}
-		}
-		ip, ok := entry["ip"].(string)
-		if !ok {
-			logParseError("ip", v)
-			return []WifiSession{}
-		}
-		ap, ok := entry["ap"].(float64)
-		if !ok {
-			logParseError("ap", v)
-			return []WifiSession{}
-		}
-		mac, ok := entry["mac"].(string)
-		if !ok {
-			logParseError("mac", v)
-			return []WifiSession{}
-		}
-		sessionsList = append(sessionsList, WifiSession{ip, mac, vlan, int(ap)})
-	}
-
-	return sessionsList
-}
-
-func logParseError(field string, data interface{}) {
-	logger.WithFields(log.Fields{
-		"field": field,
-		"data":  data,
-	}).Error("Parse error for field.")
+	return string(bytes)
 }

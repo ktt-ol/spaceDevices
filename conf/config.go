@@ -16,9 +16,10 @@ func LoadConfig(configFile string) TomlConfig {
 }
 
 type TomlConfig struct {
-	Server ServerConf
-	MacDb  MacDbConf
-	Mqtt   MqttConf
+	Server    ServerConf
+	MacDb     MacDbConf
+	Mqtt      MqttConf
+	Locations []Location `toml:"location"`
 }
 
 type ServerConf struct {
@@ -27,6 +28,11 @@ type ServerConf struct {
 	Https    bool
 	KeyFile  string
 	CertFile string
+}
+
+type Location struct {
+	Name string
+	Ids  []int
 }
 
 type MacDbConf struct {
