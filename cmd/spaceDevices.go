@@ -18,6 +18,14 @@ func main() {
 
 	setupLogging(config.Misc)
 
+	logrus.WithFields(logrus.Fields{
+		"session": config.Mqtt.SessionTopic,
+		"devices": config.Mqtt.DevicesTopic,
+		"mqttUser": config.Mqtt.Username,
+		"master": config.MacDb.MasterFile,
+		"user": config.MacDb.UserFile,
+	}).Info("SpaceDevices starting...")
+
 	//spaceDevices.EnableMqttDebugLogging()
 
 	userDb := db.NewUserDb(config.MacDb)
