@@ -191,7 +191,7 @@ func defaultCertPool(certFile string) *x509.CertPool {
 }
 
 func emptyPeopleAndDevices() string {
-	pad := PeopleAndDevices{}
+	pad := PeopleAndDevices{People:[]Person{}}
 	bytes, err := json.Marshal(pad)
 	if err != nil {
 		mqttLogger.WithError(err).Panic()
