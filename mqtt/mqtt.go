@@ -109,7 +109,7 @@ func (h *MqttHandler) onConnect(client mqtt.Client) {
 	err := subscribe(client, TOPIC_SESSIONS,
 		func(client mqtt.Client, message mqtt.Message) {
 			mqttLogger.Debug("new wifi sessions")
-			///*
+			/*
 							mock := []byte(`{  "38134": {
 				    "last-auth": 1509211121,
 				    "vlan": "default",
@@ -138,10 +138,10 @@ func (h *MqttHandler) onConnect(client mqtt.Client) {
 				    "last-rssi-dbm": -48,
 				    "last-activity": 1509211584
 				  }}`)
-			//*/
+			*/
 			select {
-		 	case h.newDataChan <- mock:
-			//case h.newDataChan <- message.Payload():
+		 	//case h.newDataChan <- mock:
+			case h.newDataChan <- message.Payload():
 				break
 			default:
 				mqttLogger.Println("No one receives the message.")

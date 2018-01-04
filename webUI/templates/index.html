@@ -43,15 +43,15 @@
 {{if .isLocallyAdministered }}
 <div class="container info-problem">
 
-    <div class="alert alert-warning" role="alert">
-        Deine Mac Adresse wird zufällig generiert, daher kannst du dafür keinen Namen eingeben. Bei Windows 10 kann man
-        das angeblich ändern.
+    <div class="alert alert-warning">
+        Achtung, deine Mac Adresse wird zufällig generiert. Evt. ändert die sich bei jeder Verbindung.
+        <br>
+        Bei Windows 10 kann man das ändern, indem du das Netzwerk "Privat" und "Öffentlich" ist.
     </div>
 
 </div>
 {{end}}
 
-{{if not .isLocallyAdministered}}
 {{if not .macNotFound}}
 <div class="container mac-update">
     <div class="row">
@@ -115,7 +115,6 @@
 
 
 </div>
-{{end}}
 {{end}}
 
 <footer class="footer">
