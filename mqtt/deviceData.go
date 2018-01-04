@@ -2,12 +2,15 @@ package mqtt
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/ktt-ol/spaceDevices/conf"
 	"github.com/ktt-ol/spaceDevices/db"
 
 	"github.com/sirupsen/logrus"
+	"crypto/md5"
+	"fmt"
+	"bytes"
+	"sort"
 )
 
 var ignoredVisibility = [...]db.Visibility{db.VisibilityCriticalInfrastructure, db.VisibilityImportantInfrastructure,
@@ -27,6 +30,9 @@ type DeviceData struct {
 	masterDb        db.MasterDb
 	userDb          db.UserDb
 	wifiSessionList []WifiSession
+
+	lastSentHash []byte
+
 	// more to come, e.g. LanSessions
 }
 
@@ -44,12 +50,32 @@ func NewDeviceData(locations []conf.Location, mqttHandler *MqttHandler, masterDb
 }
 
 func (d *DeviceData) newData(data []byte) {
-	fmt.Println("got data, len ", len(data))
 	sessionsList, peopleAndDevices, ok := d.parseWifiSessions(data)
 	if ok {
 		d.wifiSessionList = sessionsList
-		fmt.Printf("peopleAndDevices: %+v\n", peopleAndDevices)
-		d.mqttHandler.SendPeopleAndDevices(peopleAndDevices)
+		if ddLogger.Logger.Level >= logrus.DebugLevel {
+			people := make(map[string]interface{})
+			for _, p := range peopleAndDevices.People {
+				people[p.Name] = nil
+			}
+			peopleList := make([]string, len(people))
+			for k, _ := range people {
+				peopleList = append(peopleList, k)
+			}
+			sort.Strings(peopleList)
+			ddLogger.Debugf("PeopleCount: %d, DeviceCount: %d, UnknownDevicesCount: %d, Persons: %s",
+				peopleAndDevices.PeopleCount, peopleAndDevices.DeviceCount, peopleAndDevices.UnknownDevicesCount, peopleList)
+		}
+		h := md5.New()
+		s := fmt.Sprintf("%v", peopleAndDevices)
+		hash := h.Sum([]byte(s))
+		if bytes.Equal(hash, d.lastSentHash)  {
+			ddLogger.Debug("Nothing changed in people count, skipping mqtt")
+		} else {
+			d.mqttHandler.SendPeopleAndDevices(peopleAndDevices)
+			d.lastSentHash = hash
+		}
+
 	}
 }
 
@@ -139,11 +165,13 @@ SESSION_LOOP:
 		var person Person
 		if devicesEntry.showDevices {
 			person = Person{Name: username, Devices: devicesEntry.devices}
+			sort.Sort(DevicesSorter(person.Devices))
 		} else {
 			person = Person{Name: username}
 		}
 		peopleAndDevices.People = append(peopleAndDevices.People, person)
 	}
+	sort.Sort(PersonSorter(peopleAndDevices.People))
 
 	success = true
 	return

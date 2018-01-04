@@ -189,10 +189,21 @@ func Test_peopleCalculation(t *testing.T) {
 	entry.Visibility = db.VisibilityCriticalInfrastructure
 	masterMap["00:00:00:00:00:05"] = entry
 	_, peopleAndDevices, _ = dd.parseWifiSessions(testData)
-	fmt.Printf("peopleAndDevices: %+v\n", peopleAndDevices)
 	assertPeopleAndDevices(assert, 2, 3, 5, 0, peopleAndDevices)
 
-	t.Fail()
+	// add a second device for olaf
+	testData = newSessionTestData(stt("1", "01"), stt("2", "02"), stt("3", "03"), stt("4", "04"), stt("5", "05"), stt("6", "06"))
+	userMap["00:00:00:00:00:06"] = db.UserDbEntry{Name: "olaf", DeviceName: "mac", Visibility: db.VisibilityAll}
+	_, peopleAndDevices, _ = dd.parseWifiSessions(testData)
+	fmt.Printf("peopleAndDevices: %+v\n", peopleAndDevices)
+	assertPeopleAndDevices(assert, 2, 3, 6, 0, peopleAndDevices)
+	for _, p := range peopleAndDevices.People {
+		if p.Name == "olaf" {
+			assert.Equal(2, len(p.Devices))
+		} else {
+			assert.Equal(0, len(p.Devices))
+		}
+	}
 }
 
 func assertPeopleAndDevices(assert *assert.Assertions, peopleArrayCount int, peopleCount uint, deviceCount uint, unknownDevicesCount uint, test PeopleAndDevices) {

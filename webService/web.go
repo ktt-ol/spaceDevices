@@ -60,12 +60,12 @@ func overviewPageHandler(c *gin.Context) {
 	isLocallyAdministered := false
 	macNotFound := false
 	if info, ok := devices.GetByIp(ip); ok {
+		mac = info.Mac
+		isLocallyAdministered = db.IsMacLocallyAdministered(mac)
 		if userInfo, ok := macDb.Get(info.Mac); ok {
-			mac = info.Mac
 			name = userInfo.Name
 			deviceName = userInfo.DeviceName
 			visibility = userInfo.Visibility
-			isLocallyAdministered = db.IsMacLocallyAdministered(mac)
 		}
 	} else {
 		macNotFound = true

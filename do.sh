@@ -15,6 +15,9 @@ while (( "$#" )); do
         build-linux)
             env GOOS=linux GOARCH=amd64 go build cmd/spaceDevices.go
             ;;
+        test-sync)
+            rsync -n -avzi --delete spaceDevices webUI root@spacegate:/home/status/spaceDevices2/
+            ;;
         sync)
             rsync -avzi --delete spaceDevices webUI root@spacegate:/home/status/spaceDevices2/
             ;;

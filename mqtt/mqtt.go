@@ -16,7 +16,8 @@ const CLIENT_ID = "spaceDevices2"
 const TOPIC_SESSIONS = "/net/wlan-sessions"
 
 // ATTENTION: test topic!
-const TOPIC_DEVICES = "/test/net_devices"
+//const TOPIC_DEVICES = "/test/net_devices"
+const TOPIC_DEVICES = "/net/devices"
 
 var mqttLogger = log.WithField("where", "mqtt")
 
@@ -108,7 +109,7 @@ func (h *MqttHandler) onConnect(client mqtt.Client) {
 	err := subscribe(client, TOPIC_SESSIONS,
 		func(client mqtt.Client, message mqtt.Message) {
 			mqttLogger.Debug("new wifi sessions")
-			/*
+			///*
 							mock := []byte(`{  "38134": {
 				    "last-auth": 1509211121,
 				    "vlan": "default",
@@ -126,7 +127,7 @@ func (h *MqttHandler) onConnect(client mqtt.Client) {
 				    "last-snr": 47,
 				    "last-rate-mbits": "6",
 				    "ap": 1,
-				    "mac": "10:68:3f:bb:bb:bb",
+				    "mac": "d4:38:9c:01:dd:03",
 				    "radio": 2,
 				    "userinfo": {
 				      "name": "Holger",
@@ -137,10 +138,10 @@ func (h *MqttHandler) onConnect(client mqtt.Client) {
 				    "last-rssi-dbm": -48,
 				    "last-activity": 1509211584
 				  }}`)
-			*/
+			//*/
 			select {
-			// case h.newDataChan <- mock:
-			case h.newDataChan <- message.Payload():
+		 	case h.newDataChan <- mock:
+			//case h.newDataChan <- message.Payload():
 				break
 			default:
 				mqttLogger.Println("No one receives the message.")

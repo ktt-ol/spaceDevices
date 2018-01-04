@@ -1,4 +1,8 @@
 # COPY THIS TO config.toml 
+[misc]
+debugLogging = false
+# if enabled, all logging goes to the file. Warn and up goes to stderr, too.
+# logfile = "/var/log/spaceDevices2.log"
 
 [server]
 host = "0.0.0.0"

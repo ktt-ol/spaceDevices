@@ -16,10 +16,16 @@ func LoadConfig(configFile string) TomlConfig {
 }
 
 type TomlConfig struct {
+	Misc      MiscConf
 	Server    ServerConf
 	MacDb     MacDbConf
 	Mqtt      MqttConf
 	Locations []Location `toml:"location"`
+}
+
+type MiscConf struct {
+	DebugLogging bool
+	Logfile      string
 }
 
 type ServerConf struct {
