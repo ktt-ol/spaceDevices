@@ -5,11 +5,11 @@ After=network.target
 
 [Service]
 Type=simple
-User=<Insert User>
-Group=<Insert User>
+User=status
+Group=status
 Environment="GIN_MODE=release"
-WorkingDirectory=<Change>
-ExecStart=<Change>/spaceDevices
+WorkingDirectory=/home/status/spaceDevices2
+ExecStart=/home/status/spaceDevices2/spaceDevices
 Restart=always
 RestartSec=60
 

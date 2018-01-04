@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"bytes"
 	"sort"
+	"strings"
 )
 
 var ignoredVisibility = [...]db.Visibility{db.VisibilityCriticalInfrastructure, db.VisibilityImportantInfrastructure,
@@ -54,17 +55,21 @@ func (d *DeviceData) newData(data []byte) {
 	if ok {
 		d.wifiSessionList = sessionsList
 		if ddLogger.Logger.Level >= logrus.DebugLevel {
-			people := make(map[string]interface{})
-			for _, p := range peopleAndDevices.People {
-				people[p.Name] = nil
-			}
-			peopleList := make([]string, len(people))
-			for k, _ := range people {
-				peopleList = append(peopleList, k)
+			peopleList := make([]string, 0, len(peopleAndDevices.People))
+			for _, person := range peopleAndDevices.People {
+				if len(person.Name) == 0 {
+					continue
+				}
+				personStr := person.Name + " ["
+				for _, device := range person.Devices {
+					personStr += device.Name + ","
+				}
+				personStr += "]"
+				peopleList = append(peopleList, personStr)
 			}
 			sort.Strings(peopleList)
 			ddLogger.Debugf("PeopleCount: %d, DeviceCount: %d, UnknownDevicesCount: %d, Persons: %s",
-				peopleAndDevices.PeopleCount, peopleAndDevices.DeviceCount, peopleAndDevices.UnknownDevicesCount, peopleList)
+				peopleAndDevices.PeopleCount, peopleAndDevices.DeviceCount, peopleAndDevices.UnknownDevicesCount, strings.Join(peopleList, "; "))
 		}
 		h := md5.New()
 		s := fmt.Sprintf("%v", peopleAndDevices)

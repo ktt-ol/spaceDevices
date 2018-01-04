@@ -95,10 +95,13 @@ func (h *MqttHandler) SendPeopleAndDevices(data PeopleAndDevices) {
 		return
 	}
 
+	mqttLogger.Infof("Sending PeopleAndDevices: %d, %d, %d, %d",
+		data.PeopleCount, data.DeviceCount, data.UnknownDevicesCount, len(data.People))
+
 	token := h.client.Publish(TOPIC_DEVICES, 0, true, string(bytes))
 	ok := token.WaitTimeout(time.Duration(time.Second * 10))
 	if !ok {
-		mqttLogger.Infoln("Error sending devices to:", TOPIC_DEVICES)
+		mqttLogger.Warn("Error sending devices to:", TOPIC_DEVICES)
 		return
 	}
 }
