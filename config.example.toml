@@ -19,6 +19,8 @@ url = "tls://server:8883"
 certFile = "server.cert.pem"
 username = "user"
 password = "pass"
+sessionTopic = "/net/wlan-sessions"
+devicesTopic = "/net/devices"
 
 [[location]]
 name = "Bar"

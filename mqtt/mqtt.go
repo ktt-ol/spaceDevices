@@ -13,17 +13,14 @@ import (
 )
 
 const CLIENT_ID = "spaceDevices2"
-const TOPIC_SESSIONS = "/net/wlan-sessions"
-
-// ATTENTION: test topic!
-//const TOPIC_DEVICES = "/test/net_devices"
-const TOPIC_DEVICES = "/net/devices"
 
 var mqttLogger = log.WithField("where", "mqtt")
 
 type MqttHandler struct {
-	client      mqtt.Client
-	newDataChan chan []byte
+	client       mqtt.Client
+	newDataChan  chan []byte
+	sessionTopic string
+	devicesTopic string
 }
 
 //func init() {
@@ -70,9 +67,9 @@ func NewMqttHandler(conf conf.MqttConf) *MqttHandler {
 	opts.SetAutoReconnect(true)
 	opts.SetKeepAlive(10 * time.Second)
 	opts.SetMaxReconnectInterval(5 * time.Minute)
-	opts.SetWill(TOPIC_DEVICES, emptyPeopleAndDevices(), 0, true)
+	opts.SetWill(conf.DevicesTopic, emptyPeopleAndDevices(), 0, true)
 
-	handler := MqttHandler{newDataChan: make(chan []byte)}
+	handler := MqttHandler{newDataChan: make(chan []byte), devicesTopic: conf.DevicesTopic, sessionTopic: conf.SessionTopic}
 	opts.SetOnConnectHandler(handler.onConnect)
 	opts.SetConnectionLostHandler(handler.onConnectionLost)
 
@@ -98,10 +95,10 @@ func (h *MqttHandler) SendPeopleAndDevices(data PeopleAndDevices) {
 	mqttLogger.Infof("Sending PeopleAndDevices: %d, %d, %d, %d",
 		data.PeopleCount, data.DeviceCount, data.UnknownDevicesCount, len(data.People))
 
-	token := h.client.Publish(TOPIC_DEVICES, 0, true, string(bytes))
+	token := h.client.Publish(h.devicesTopic, 0, true, string(bytes))
 	ok := token.WaitTimeout(time.Duration(time.Second * 10))
 	if !ok {
-		mqttLogger.Warn("Error sending devices to:", TOPIC_DEVICES)
+		mqttLogger.Warn("Error sending devices to:", h.devicesTopic)
 		return
 	}
 }
@@ -109,7 +106,7 @@ func (h *MqttHandler) SendPeopleAndDevices(data PeopleAndDevices) {
 func (h *MqttHandler) onConnect(client mqtt.Client) {
 	mqttLogger.Info("connected")
 
-	err := subscribe(client, TOPIC_SESSIONS,
+	err := subscribe(client, h.sessionTopic,
 		func(client mqtt.Client, message mqtt.Message) {
 			mqttLogger.Debug("new wifi sessions")
 			/*
@@ -143,7 +140,7 @@ func (h *MqttHandler) onConnect(client mqtt.Client) {
 				  }}`)
 			*/
 			select {
-		 	//case h.newDataChan <- mock:
+			//case h.newDataChan <- mock:
 			case h.newDataChan <- message.Payload():
 				break
 			default:
@@ -191,7 +188,7 @@ func defaultCertPool(certFile string) *x509.CertPool {
 }
 
 func emptyPeopleAndDevices() string {
-	pad := PeopleAndDevices{People:[]Person{}}
+	pad := PeopleAndDevices{People: []Person{}}
 	bytes, err := json.Marshal(pad)
 	if err != nil {
 		mqttLogger.WithError(err).Panic()

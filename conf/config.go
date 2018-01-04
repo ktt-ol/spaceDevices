@@ -51,5 +51,7 @@ type MqttConf struct {
 	Username string
 	Password string
 	// if empty, the system certificates are used
-	CertFile string
+	CertFile     string
+	SessionTopic string
+	DevicesTopic string
 }
