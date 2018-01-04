@@ -1,0 +1,20 @@
+[Unit]
+Description=spaceDevicesGo
+After=syslog.target
+After=network.target
+
+[Service]
+Type=simple
+User=<Insert User>
+Group=<Insert User>
+Environment="GIN_MODE=release"
+WorkingDirectory=<Change>
+ExecStart=<Change>/spaceDevices
+Restart=always
+RestartSec=60
+
+# Give a reasonable amount of time for the server to start up/shut down
+TimeoutSec=60
+
+[Install]
+WantedBy=multi-user.target
