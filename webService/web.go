@@ -42,10 +42,14 @@ func StartWebService(conf conf.ServerConf, _devices *mqtt.DeviceData, _macDb db.
 	})
 
 	addr := fmt.Sprintf("%s:%d", conf.Host, conf.Port)
+	var err error
 	if conf.Https {
-		router.RunTLS(addr, conf.CertFile, conf.KeyFile)
+		err = router.RunTLS(addr, conf.CertFile, conf.KeyFile)
 	} else {
-		router.Run(addr)
+		err = router.Run(addr)
+	}
+	if err != nil {
+		logger.Error("gin exit", err)
 	}
 }
 
