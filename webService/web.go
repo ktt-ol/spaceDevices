@@ -27,7 +27,7 @@ func StartWebService(conf conf.ServerConf, _devices *mqtt.DeviceData, _macDb db.
 
 	// use logrus logging
 	gin.DisableConsoleColor()
-	gin.DefaultWriter = logrus.WithField("where", "gin").Writer()
+	gin.DefaultWriter = logrus.WithField("where", "gin").WriterLevel(logrus.DebugLevel)
 	gin.DefaultErrorWriter = logrus.WithField("where", "gin").WriterLevel(logrus.ErrorLevel)
 
 	router := gin.Default()
