@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const CLIENT_ID = "spaceDevices2"
+const CLIENT_ID = "spaceDevicesGo"
 
 var mqttLogger = log.WithField("where", "mqtt")
 
@@ -21,6 +21,7 @@ type MqttHandler struct {
 	newDataChan  chan []byte
 	sessionTopic string
 	devicesTopic string
+
 }
 
 //func init() {
@@ -63,11 +64,12 @@ func NewMqttHandler(conf conf.MqttConf) *MqttHandler {
 	}
 	opts.SetTLSConfig(tlsConf)
 
-	opts.SetClientID(CLIENT_ID)
+	opts.SetClientID(CLIENT_ID + GenerateRandomString(4))
 	opts.SetAutoReconnect(true)
 	opts.SetKeepAlive(10 * time.Second)
 	opts.SetMaxReconnectInterval(5 * time.Minute)
 	opts.SetWill(conf.DevicesTopic, emptyPeopleAndDevices(), 0, true)
+
 
 	handler := MqttHandler{newDataChan: make(chan []byte), devicesTopic: conf.DevicesTopic, sessionTopic: conf.SessionTopic}
 	opts.SetOnConnectHandler(handler.onConnect)
@@ -98,7 +100,7 @@ func (h *MqttHandler) SendPeopleAndDevices(data PeopleAndDevices) {
 	token := h.client.Publish(h.devicesTopic, 0, true, string(bytes))
 	ok := token.WaitTimeout(time.Duration(time.Second * 10))
 	if !ok {
-		mqttLogger.Warn("Error sending devices to:", h.devicesTopic)
+		mqttLogger.WithError(token.Error()).WithField("topic", h.devicesTopic).Warn("Error sending devices.")
 		return
 	}
 }
