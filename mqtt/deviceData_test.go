@@ -213,6 +213,16 @@ func assertPeopleAndDevices(assert *assert.Assertions, peopleArrayCount int, peo
 	assert.Equal(unknownDevicesCount, test.UnknownDevicesCount, "unknownDevicesCount")
 }
 
+func Test_peopleNeverNil(t *testing.T) {
+	assert := assert.New(t)
+	dd := DeviceData{}
+
+	testData := newSessionTestData()
+	_, peopleAndDevices, success := dd.parseWifiSessions(testData)
+	assert.True(success)
+	assert.NotNil(peopleAndDevices.People)
+}
+
 /****************************************/
 /* helper to create test data and mocks */
 /****************************************/

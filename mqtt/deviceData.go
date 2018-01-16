@@ -162,6 +162,7 @@ SESSION_LOOP:
 		}
 	}
 
+	peopleAndDevices.People = make([]Person, 0, 10)
 	for username, devicesEntry := range username2DevicesMap {
 		if devicesEntry.hideName {
 			continue
