@@ -26,7 +26,7 @@ func main() {
 		"user": config.MacDb.UserFile,
 	}).Info("SpaceDevices starting...")
 
-	//spaceDevices.EnableMqttDebugLogging()
+	//mqtt.EnableMqttDebugLogging()
 
 	userDb := db.NewUserDb(config.MacDb)
 	masterDb := db.NewMasterDb(config.MacDb)

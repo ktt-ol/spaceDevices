@@ -1,7 +1,7 @@
 #!/bin/bash
 
 usage() {
-    echo "Usage $0 (build-linux|sync)"
+    echo "Usage $0 (build-linux|test-sync|sync)"
 }
 
 if [ "$1" == "" ]; then

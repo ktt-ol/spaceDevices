@@ -21,6 +21,9 @@ username = "user"
 password = "pass"
 sessionTopic = "/net/wlan-sessions"
 devicesTopic = "/net/devices"
+# after this amount of minutes without any data from the sessions toptic, the program will be killed
+# a value < 1 will disable this check
+watchDogTimeoutInMinutes = 5
 
 [[location]]
 name = "Bar"

@@ -21,7 +21,7 @@ type MqttHandler struct {
 	newDataChan  chan []byte
 	sessionTopic string
 	devicesTopic string
-
+	watchDog     *watchDog
 }
 
 //func init() {
@@ -70,7 +70,6 @@ func NewMqttHandler(conf conf.MqttConf) *MqttHandler {
 	opts.SetMaxReconnectInterval(5 * time.Minute)
 	opts.SetWill(conf.DevicesTopic, emptyPeopleAndDevices(), 0, true)
 
-
 	handler := MqttHandler{newDataChan: make(chan []byte), devicesTopic: conf.DevicesTopic, sessionTopic: conf.SessionTopic}
 	opts.SetOnConnectHandler(handler.onConnect)
 	opts.SetConnectionLostHandler(handler.onConnectionLost)
@@ -78,6 +77,11 @@ func NewMqttHandler(conf conf.MqttConf) *MqttHandler {
 	handler.client = mqtt.NewClient(opts)
 	if tok := handler.client.Connect(); tok.WaitTimeout(5*time.Second) && tok.Error() != nil {
 		mqttLogger.WithError(tok.Error()).Fatal("Could not connect to mqtt server.")
+	}
+
+	if conf.WatchDogTimeoutInMinutes > 0 {
+		mqttLogger.Println("Enable mqtt watch dog, timeout in minutes is", conf.WatchDogTimeoutInMinutes)
+		handler.watchDog = NewWatchDog(time.Duration(conf.WatchDogTimeoutInMinutes) * time.Minute)
 	}
 
 	return &handler
@@ -111,6 +115,10 @@ func (h *MqttHandler) onConnect(client mqtt.Client) {
 	err := subscribe(client, h.sessionTopic,
 		func(client mqtt.Client, message mqtt.Message) {
 			mqttLogger.Debug("new wifi sessions")
+			if h.watchDog != nil {
+				h.watchDog.Ping()
+			}
+
 			/*
 							mock := []byte(`{  "38134": {
 				    "last-auth": 1509211121,
@@ -151,7 +159,7 @@ func (h *MqttHandler) onConnect(client mqtt.Client) {
 
 		})
 	if err != nil {
-		mqttLogger.WithError(err).Fatal("Could not subscribe")
+		mqttLogger.WithField("topic", h.sessionTopic).WithError(err).Fatal("Could not subscribe.")
 	}
 }
 
