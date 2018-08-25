@@ -1,9 +1,9 @@
-package conf_test
+package conf
 
 import (
 	"testing"
 
-	"github.com/ktt-ol/spaceDevices/conf"
+	"github.com/ktt-ol/spaceDevices/internal/confrnal/conf"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -8,9 +8,9 @@ import (
 
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
-	"github.com/ktt-ol/spaceDevices/conf"
-	"github.com/ktt-ol/spaceDevices/db"
-	"github.com/ktt-ol/spaceDevices/mqtt"
+	"github.com/ktt-ol/spaceDevices/internal/conf"
+	"github.com/ktt-ol/spaceDevices/internal/db"
+	"github.com/ktt-ol/spaceDevices/internal/mqtt"
 	"github.com/sirupsen/logrus"
 )
 

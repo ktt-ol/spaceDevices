@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ktt-ol/spaceDevices/conf"
-	"github.com/ktt-ol/spaceDevices/db"
-	"github.com/ktt-ol/spaceDevices/mqtt"
-	"github.com/ktt-ol/spaceDevices/webService"
+	"github.com/ktt-ol/spaceDevices/internal/conf"
+	"github.com/ktt-ol/spaceDevices/internal/db"
+	"github.com/ktt-ol/spaceDevices/internal/mqtt"
+	"github.com/ktt-ol/spaceDevices/internal/webService"
 	"github.com/sirupsen/logrus"
 )
 

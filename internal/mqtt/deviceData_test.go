@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ktt-ol/spaceDevices/conf"
+	"github.com/ktt-ol/spaceDevices/internal/conf"
 
-	"github.com/ktt-ol/spaceDevices/db"
+	"github.com/ktt-ol/spaceDevices/internal/db"
 	"github.com/stretchr/testify/assert"
 )
 

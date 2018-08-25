@@ -8,8 +8,9 @@ import (
 	"time"
 
 	"github.com/eclipse/paho.mqtt.golang"
-	"github.com/ktt-ol/spaceDevices/conf"
+	"github.com/ktt-ol/spaceDevices/internal/conf"
 	log "github.com/sirupsen/logrus"
+	"github.com/ktt-ol/spaceDevices/pkg/structs"
 )
 
 const CLIENT_ID = "spaceDevicesGo"
@@ -91,7 +92,7 @@ func (h *MqttHandler) GetNewDataChannel() chan []byte {
 	return h.newDataChan
 }
 
-func (h *MqttHandler) SendPeopleAndDevices(data PeopleAndDevices) {
+func (h *MqttHandler) SendPeopleAndDevices(data structs.PeopleAndDevices) {
 	bytes, err := json.Marshal(data)
 	if err != nil {
 		mqttLogger.Errorln("Invalid people json", err)
@@ -198,7 +199,7 @@ func defaultCertPool(certFile string) *x509.CertPool {
 }
 
 func emptyPeopleAndDevices() string {
-	pad := PeopleAndDevices{People: []Person{}}
+	pad := structs.PeopleAndDevices{People: []structs.Person{}}
 	bytes, err := json.Marshal(pad)
 	if err != nil {
 		mqttLogger.WithError(err).Panic()

@@ -3,8 +3,8 @@ package mqtt
 import (
 	"encoding/json"
 
-	"github.com/ktt-ol/spaceDevices/conf"
-	"github.com/ktt-ol/spaceDevices/db"
+	"github.com/ktt-ol/spaceDevices/internal/conf"
+	"github.com/ktt-ol/spaceDevices/internal/db"
 
 	"github.com/sirupsen/logrus"
 	"crypto/md5"
@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"sort"
 	"strings"
+	"github.com/ktt-ol/spaceDevices/pkg/structs"
 )
 
 var ignoredVisibility = [...]db.Visibility{db.VisibilityCriticalInfrastructure, db.VisibilityImportantInfrastructure,
@@ -22,7 +23,7 @@ var ddLogger = logrus.WithField("where", "deviceData")
 type devicesEntry struct {
 	hideName    bool
 	showDevices bool
-	devices     []Devices
+	devices     []structs.Devices
 }
 
 type DeviceData struct {
@@ -30,7 +31,7 @@ type DeviceData struct {
 	mqttHandler     *MqttHandler
 	masterDb        db.MasterDb
 	userDb          db.UserDb
-	wifiSessionList []WifiSession
+	wifiSessionList []structs.WifiSession
 
 	lastSentHash []byte
 
@@ -74,7 +75,7 @@ func (d *DeviceData) newData(data []byte) {
 		h := md5.New()
 		s := fmt.Sprintf("%v", peopleAndDevices)
 		hash := h.Sum([]byte(s))
-		if bytes.Equal(hash, d.lastSentHash)  {
+		if bytes.Equal(hash, d.lastSentHash) {
 			ddLogger.Debug("Nothing changed in people count, skipping mqtt")
 		} else {
 			d.mqttHandler.SendPeopleAndDevices(peopleAndDevices)
@@ -84,18 +85,18 @@ func (d *DeviceData) newData(data []byte) {
 	}
 }
 
-func (d *DeviceData) GetByIp(ip string) (WifiSession, bool) {
+func (d *DeviceData) GetByIp(ip string) (structs.WifiSession, bool) {
 	for _, v := range d.wifiSessionList {
 		if v.Ip == ip {
 			return v, true
 		}
 	}
 
-	return WifiSession{}, false
+	return structs.WifiSession{}, false
 }
 
-func (d *DeviceData) parseWifiSessions(rawData []byte) (sessionsList []WifiSession, peopleAndDevices PeopleAndDevices, success bool) {
-	var sessionData map[string]WifiSession
+func (d *DeviceData) parseWifiSessions(rawData []byte) (sessionsList []structs.WifiSession, peopleAndDevices structs.PeopleAndDevices, success bool) {
+	var sessionData map[string]structs.WifiSession
 	if err := json.Unmarshal(rawData, &sessionData); err != nil {
 		ddLogger.WithFields(logrus.Fields{
 			"rawData": string(rawData),
@@ -134,7 +135,7 @@ SESSION_LOOP:
 			username2DevicesMap[userInfo.Name] = entry
 		}
 
-		device := Devices{Name: userInfo.DeviceName, Location: d.findLocation(wifiSession.AP)}
+		device := structs.Devices{Name: userInfo.DeviceName, Location: d.findLocation(wifiSession.AP)}
 		entry.devices = append(entry.devices, device)
 
 		if userInfo.Visibility == db.VisibilityIgnore {
@@ -162,22 +163,22 @@ SESSION_LOOP:
 		}
 	}
 
-	peopleAndDevices.People = make([]Person, 0, 10)
+	peopleAndDevices.People = make([]structs.Person, 0, 10)
 	for username, devicesEntry := range username2DevicesMap {
 		if devicesEntry.hideName {
 			continue
 		}
 
-		var person Person
+		var person structs.Person
 		if devicesEntry.showDevices {
-			person = Person{Name: username, Devices: devicesEntry.devices}
-			sort.Sort(DevicesSorter(person.Devices))
+			person = structs.Person{Name: username, Devices: devicesEntry.devices}
+			sort.Sort(structs.DevicesSorter(person.Devices))
 		} else {
-			person = Person{Name: username}
+			person = structs.Person{Name: username}
 		}
 		peopleAndDevices.People = append(peopleAndDevices.People, person)
 	}
-	sort.Sort(PersonSorter(peopleAndDevices.People))
+	sort.Sort(structs.PersonSorter(peopleAndDevices.People))
 
 	success = true
 	return

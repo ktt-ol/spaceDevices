@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"sync"
 
-	"github.com/ktt-ol/spaceDevices/conf"
+	"github.com/ktt-ol/spaceDevices/internal/conf"
 	log "github.com/sirupsen/logrus"
 )
 
