@@ -85,10 +85,25 @@ func (d *DeviceData) newData(data []byte) {
 	}
 }
 
+// finds the session entry for the given ip v4 or v6 address
 func (d *DeviceData) GetByIp(ip string) (structs.WifiSession, bool) {
-	for _, v := range d.wifiSessionList {
-		if v.Ip == ip {
-			return v, true
+	if strings.Count(ip, ":") < 2 {
+		// v4
+		for _, v := range d.wifiSessionList {
+			if v.Ip == ip {
+				return v, true
+			}
+		}
+	} else {
+		// v6
+		for _, v := range d.wifiSessionList {
+			if len(v.Ipv6) > 0 {
+				for _, v6 := range v.Ipv6 {
+					if v6 == ip {
+						return v, true
+					}
+				}
+			}
 		}
 	}
 

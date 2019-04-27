@@ -10,6 +10,7 @@ import (
 
 	"github.com/ktt-ol/spaceDevices/internal/db"
 	"github.com/stretchr/testify/assert"
+	"github.com/ktt-ol/spaceDevices/pkg/structs"
 )
 
 func Test_parseWifiSessions(t *testing.T) {
@@ -52,17 +53,13 @@ func Test_parseWifiSessions(t *testing.T) {
     },
     "ssid": "mainframe",
     "ip": "192.168.2.179",
+	"ipv6" : [ "6e7b:c7c6:9517:a9d0:958c:3939:c93e:9864", "e759:68b6:4c7d:8483:81b7:be87:119b:7ee1" ],
     "hostname": "-",
     "last-snr": 47,
     "last-rate-mbits": "6",
     "ap": 1,
     "mac": "10:68:3f:bb:bb:bb",
     "radio": 2,
-    "userinfo": {
-      "name": "Holger",
-      "visibility": "show",
-      "ts": 1427737817755
-    },
     "session-start": 1509211121,
     "last-rssi-dbm": -48,
     "last-activity": 1509211584
@@ -80,17 +77,13 @@ func Test_parseWifiSessions(t *testing.T) {
     },
     "ssid": "mainframe",
     "ip": "192.168.2.35",
+	"ipv6": [ "325c:7fa7:cc79:bcb7:a2b1:26f6:a4ef:2501" ],
     "hostname": "happle",
     "last-snr": 39,
     "last-rate-mbits": "24",
     "ap": 1,
     "mac": "20:c9:d0:cc:cc:cc",
     "radio": 2,
-    "userinfo": {
-      "name": "Holger",
-      "visibility": "show",
-      "ts": 1438474581580
-    },
     "session-start": 1509211163,
     "last-rssi-dbm": -56,
     "last-activity": 1509211584
@@ -114,7 +107,6 @@ func Test_parseWifiSessions(t *testing.T) {
     "ap": 1,
     "mac": "b8:53:ac:dd:dd:dd",
     "radio": 1,
-    "userinfo": null,
     "session-start": 1509211199,
     "last-rssi-dbm": -82,
     "last-activity": 1509211584
@@ -131,21 +123,40 @@ func Test_parseWifiSessions(t *testing.T) {
 	assert.Equal(len(sessions), 4)
 	assert.True(ok)
 
-	mustContain := [4]bool{false, false, false, false}
-	for _, v := range sessions {
-		mustContain[0] = mustContain[0] || (v.Ip == "192.168.2.127" && v.Mac == "2c:0e:3d:aa:aa:aa" && v.Vlan == "default" && v.AP == 2)
-		mustContain[1] = mustContain[1] || (v.Ip == "192.168.2.179" && v.Mac == "10:68:3f:bb:bb:bb" && v.Vlan == "default" && v.AP == 1)
-		mustContain[2] = mustContain[2] || (v.Ip == "192.168.2.35" && v.Mac == "20:c9:d0:cc:cc:cc" && v.Vlan == "default" && v.AP == 1)
-		mustContain[3] = mustContain[3] || (v.Ip == "10.18.159.6" && v.Mac == "b8:53:ac:dd:dd:dd" && v.Vlan == "FreiFunk" && v.AP == 1)
-	}
-	for _, v := range mustContain {
-		assert.True(v)
-	}
+	v := findByIp(assert, sessions, "192.168.2.127")
+	assert.True(v.Mac == "2c:0e:3d:aa:aa:aa" && v.Vlan == "default" && v.AP == 2)
+	assert.Equal(0, len(v.Ipv6))
+
+	v = findByIp(assert, sessions, "192.168.2.179")
+	assert.True(v.Mac == "10:68:3f:bb:bb:bb" && v.Vlan == "default" && v.AP == 1)
+	assert.Equal(2, len(v.Ipv6))
+	assert.Equal("6e7b:c7c6:9517:a9d0:958c:3939:c93e:9864", v.Ipv6[0])
+	assert.Equal("e759:68b6:4c7d:8483:81b7:be87:119b:7ee1", v.Ipv6[1])
+
+	v = findByIp(assert, sessions, "192.168.2.35")
+	assert.True(v.Mac == "20:c9:d0:cc:cc:cc" && v.Vlan == "default" && v.AP == 1)
+	assert.Equal(1, len(v.Ipv6))
+	assert.Equal("325c:7fa7:cc79:bcb7:a2b1:26f6:a4ef:2501", v.Ipv6[0])
+
+	v = findByIp(assert, sessions, "10.18.159.6")
+	assert.True(v.Mac == "b8:53:ac:dd:dd:dd" && v.Vlan == "FreiFunk" && v.AP == 1)
+	assert.Equal(0, len(v.Ipv6))
 
 	// don't fail for garbage
 	sessions, _, ok = dd.parseWifiSessions([]byte("{ totally invalid json }"))
 	assert.False(ok)
 	assert.Equal(len(sessions), 0)
+}
+
+func findByIp(assert *assert.Assertions, sessions []structs.WifiSession, ip string) *structs.WifiSession {
+	for _, v := range sessions {
+		if v.Ip == ip {
+			return &v
+		}
+	}
+
+	assert.Fail("IP not found", ip)
+	return nil
 }
 
 func Test_peopleCalculation(t *testing.T) {
@@ -206,7 +217,7 @@ func Test_peopleCalculation(t *testing.T) {
 	}
 }
 
-func assertPeopleAndDevices(assert *assert.Assertions, peopleArrayCount int, peopleCount uint, deviceCount uint, unknownDevicesCount uint, test PeopleAndDevices) {
+func assertPeopleAndDevices(assert *assert.Assertions, peopleArrayCount int, peopleCount uint16, deviceCount uint16, unknownDevicesCount uint16, test structs.PeopleAndDevices) {
 	assert.Equal(peopleArrayCount, len(test.People), "len(People)")
 	assert.Equal(peopleCount, test.PeopleCount, "peopleCount")
 	assert.Equal(deviceCount, test.DeviceCount, "deviceCount")
