@@ -27,7 +27,7 @@ func main() {
 	userDb := db.NewUserDb(config.MacDb)
 	masterDb := db.NewMasterDb(config.MacDb)
 
-	mqttHandler := mqtt.NewMqttHandler(config.Mqtt)
+	mqttHandler := mqtt.NewMqttHandler(config.Mqtt, true)
 	data := mqtt.NewDeviceData(config.Locations, mqttHandler, masterDb, userDb)
 	unknownSession := data.GetOneEntry()
 

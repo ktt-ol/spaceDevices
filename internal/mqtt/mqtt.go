@@ -9,8 +9,8 @@ import (
 
 	"github.com/eclipse/paho.mqtt.golang"
 	"github.com/ktt-ol/spaceDevices/internal/conf"
-	log "github.com/sirupsen/logrus"
 	"github.com/ktt-ol/spaceDevices/pkg/structs"
+	log "github.com/sirupsen/logrus"
 )
 
 const CLIENT_ID = "spaceDevicesGo"
@@ -47,7 +47,7 @@ func EnableMqttDebugLogging() {
 	mqtt.DEBUG.SetOutput(stdLogWriter)
 }
 
-func NewMqttHandler(conf conf.MqttConf) *MqttHandler {
+func NewMqttHandler(conf conf.MqttConf, clientOnly bool) *MqttHandler {
 	opts := mqtt.NewClientOptions()
 
 	opts.AddBroker(conf.Url)
@@ -66,21 +66,25 @@ func NewMqttHandler(conf conf.MqttConf) *MqttHandler {
 	opts.SetTLSConfig(tlsConf)
 
 	opts.SetClientID(CLIENT_ID + GenerateRandomString(4))
-	opts.SetAutoReconnect(true)
-	opts.SetKeepAlive(10 * time.Second)
-	opts.SetMaxReconnectInterval(5 * time.Minute)
-	opts.SetWill(conf.DevicesTopic, emptyPeopleAndDevices(), 0, true)
+	if !clientOnly {
+		opts.SetAutoReconnect(true)
+		opts.SetKeepAlive(10 * time.Second)
+		opts.SetMaxReconnectInterval(5 * time.Minute)
+		opts.SetWill(conf.DevicesTopic, emptyPeopleAndDevices(), 0, true)
+	}
 
 	handler := MqttHandler{newDataChan: make(chan []byte), devicesTopic: conf.DevicesTopic, sessionTopic: conf.SessionTopic}
 	opts.SetOnConnectHandler(handler.onConnect)
-	opts.SetConnectionLostHandler(handler.onConnectionLost)
+	if !clientOnly {
+		opts.SetConnectionLostHandler(handler.onConnectionLost)
+	}
 
 	handler.client = mqtt.NewClient(opts)
 	if tok := handler.client.Connect(); tok.WaitTimeout(5*time.Second) && tok.Error() != nil {
 		mqttLogger.WithError(tok.Error()).Fatal("Could not connect to mqtt server.")
 	}
 
-	if conf.WatchDogTimeoutInMinutes > 0 {
+	if !clientOnly && conf.WatchDogTimeoutInMinutes > 0 {
 		mqttLogger.Println("Enable mqtt watch dog, timeout in minutes is", conf.WatchDogTimeoutInMinutes)
 		handler.watchDog = NewWatchDog(time.Duration(conf.WatchDogTimeoutInMinutes) * time.Minute)
 	}
