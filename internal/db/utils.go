@@ -9,6 +9,6 @@ func IsMacLocallyAdministered(mac string) bool {
 	const mask = 1 << 1
 
 	first2chars := mac[:2]
-	decimal, _ := strconv.ParseInt(first2chars, 16, 8)
+	decimal, _ := strconv.ParseInt(first2chars, 16, 64)
 	return (decimal & mask) == mask
 }
