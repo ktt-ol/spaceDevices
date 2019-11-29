@@ -17,10 +17,10 @@ while (( "$#" )); do
             env GOOS=linux GOARCH=amd64 go build cmd/unkownDevices/listUnkown.go
             ;;
         test-sync)
-            rsync -n -avzi --delete spaceDevices listUnkown webUI extras/macDb.csv root@spacegate:/home/status/spaceDevices2/
+            rsync -n -avzi --delete spaceDevices listUnkown webUI macVendorDb.csv root@spacegate:/home/status/spaceDevices2/
             ;;
         sync)
-            rsync -avzi --delete spaceDevices listUnkown webUI extras/macDb.csv root@spacegate:/home/status/spaceDevices2/
+            rsync -avzi --delete spaceDevices listUnkown webUI macVendorDb.csv root@spacegate:/home/status/spaceDevices2/
             ;;
         *)
             usage

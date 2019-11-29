@@ -48,7 +48,7 @@ func main() {
 }
 
 func loadMacDb() map[string]string {
-	file, err := os.Open("extras/macDb.csv")
+	file, err := os.Open("macVendorDb.csv")
 	check(err)
 	defer file.Close()
 

@@ -5,3 +5,6 @@ vendor/
 userDb.json
 masterDb.json
 extras/*.csv
+macVendorDb.csv
+listUnkown
+spaceDevices
