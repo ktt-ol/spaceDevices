@@ -33,6 +33,7 @@ func main() {
 
 	mqttHandler := mqtt.NewMqttHandler(config.Mqtt)
 	data := mqtt.NewDeviceData(config.Locations, mqttHandler, masterDb, userDb)
+	data.ListenAndUpdatePeopleData()
 
 	webService.StartWebService(config.Server, data, userDb)
 }

@@ -4,3 +4,4 @@ config.toml
 vendor/
 userDb.json
 masterDb.json
+extras/*.csv

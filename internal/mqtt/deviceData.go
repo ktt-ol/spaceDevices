@@ -6,13 +6,13 @@ import (
 	"github.com/ktt-ol/spaceDevices/internal/conf"
 	"github.com/ktt-ol/spaceDevices/internal/db"
 
-	"github.com/sirupsen/logrus"
+	"bytes"
 	"crypto/md5"
 	"fmt"
-	"bytes"
+	"github.com/ktt-ol/spaceDevices/pkg/structs"
+	"github.com/sirupsen/logrus"
 	"sort"
 	"strings"
-	"github.com/ktt-ol/spaceDevices/pkg/structs"
 )
 
 var ignoredVisibility = [...]db.Visibility{db.VisibilityCriticalInfrastructure, db.VisibilityImportantInfrastructure,
@@ -40,15 +40,40 @@ type DeviceData struct {
 
 func NewDeviceData(locations []conf.Location, mqttHandler *MqttHandler, masterDb db.MasterDb, userDb db.UserDb) *DeviceData {
 	dd := DeviceData{locations: locations, mqttHandler: mqttHandler, masterDb: masterDb, userDb: userDb}
+	return &dd
+}
 
+func (d *DeviceData) ListenAndUpdatePeopleData() {
 	go func() {
 		for {
-			data := <-mqttHandler.GetNewDataChannel()
-			dd.newData(data)
+			data := <-d.mqttHandler.GetNewDataChannel()
+			d.newData(data)
 		}
 	}()
+}
 
-	return &dd
+func (d *DeviceData) GetOneEntry() []structs.WifiSession {
+	data := <-d.mqttHandler.GetNewDataChannel()
+	sessionsList := d.unmarshal(data)
+	if sessionsList == nil {
+		return nil
+	}
+
+	unknownSession := make([]structs.WifiSession, 0, len(sessionsList))
+	for _, wifiSession := range sessionsList {
+		_, ok := d.masterDb.Get(wifiSession.Mac)
+		if ok {
+			continue
+		}
+		_, ok = d.userDb.Get(wifiSession.Mac)
+		if ok {
+			continue
+		}
+
+		unknownSession = append(unknownSession, wifiSession)
+	}
+
+	return unknownSession
 }
 
 func (d *DeviceData) newData(data []byte) {
@@ -110,13 +135,22 @@ func (d *DeviceData) GetByIp(ip string) (structs.WifiSession, bool) {
 	return structs.WifiSession{}, false
 }
 
-func (d *DeviceData) parseWifiSessions(rawData []byte) (sessionsList []structs.WifiSession, peopleAndDevices structs.PeopleAndDevices, success bool) {
+func (d *DeviceData) unmarshal(rawData []byte) map[string]structs.WifiSession {
 	var sessionData map[string]structs.WifiSession
 	if err := json.Unmarshal(rawData, &sessionData); err != nil {
 		ddLogger.WithFields(logrus.Fields{
 			"rawData": string(rawData),
 			"error":   err,
 		}).Error("Unable to unmarshal wifi session json.")
+		return nil
+	}
+
+	return sessionData
+}
+
+func (d *DeviceData) parseWifiSessions(rawData []byte) (sessionsList []structs.WifiSession, peopleAndDevices structs.PeopleAndDevices, success bool) {
+	sessionData := d.unmarshal(rawData)
+	if sessionData == nil {
 		return
 	}
 
