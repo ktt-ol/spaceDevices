@@ -20,14 +20,15 @@
 #  name = "github.com/x/y"
 #  version = "2.4.0"
 
+ignored = ["github.com/sirupsen/logrus/internal/testutils"]
 
 [[constraint]]
   name = "github.com/sirupsen/logrus"
-  version = "1.0.3"
+  version = "=1.0.6"
 
 [[constraint]]
   name = "github.com/gin-gonic/gin"
-  version = "1.2.0"
+  version = "=1.4.0"
 
 [[constraint]]
   branch = "master"
@@ -35,15 +36,15 @@
 
 [[constraint]]
   name = "github.com/BurntSushi/toml"
-  version = "0.3.0"
+  version = "=0.3.0"
 
 [[constraint]]
   name = "github.com/eclipse/paho.mqtt.golang"
-  version = "1.1.0"
+  version = "=1.1.0"
 
 [[constraint]]
   name = "github.com/stretchr/testify"
-  version = "1.1.4"
+  version = "=1.1.4"
 
 [[constraint]]
   branch = "master"
