@@ -1,7 +1,7 @@
 #!/bin/bash
 
 usage() {
-    echo "Usage $0 (build-linux|docker-image|docker-build|test-sync|sync)"
+    echo "Usage $0 (build-linux|docker-image|docker-dep|docker-build|test-sync|sync)"
 }
 
 if [ "$1" == "" ]; then
@@ -19,8 +19,11 @@ while (( "$#" )); do
         docker-image)
             docker build -t space-devices-build docker/
             ;;
+        docker-dep)
+            docker run --rm -it -v $(pwd):/go/src/github.com/ktt-ol/spaceDevices -u $(id -u):$(id -g) space-devices-build dep ensure -v -vendor-only
+            ;;
         docker-build)
-            docker run --rm -it -v $(pwd):/go/src/spaceDevices space-devices-build dep ensure -v -vendor-only && ./do.sh build-linux
+            docker run --rm -it -v $(pwd):/go/src/github.com/ktt-ol/spaceDevices -u $(id -u):$(id -g) space-devices-build ./do.sh build-linux
             ;;
         test-sync)
             rsync -n -avzi --delete spaceDevices listUnkown webUI macVendorDb.csv root@spacegate:/home/status/spaceDevices2/
