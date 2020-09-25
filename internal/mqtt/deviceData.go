@@ -115,7 +115,7 @@ func (d *DeviceData) GetByIp(ip string) (structs.WifiSession, bool) {
 	if strings.Count(ip, ":") < 2 {
 		// v4
 		for _, v := range d.wifiSessionList {
-			if v.Ip == ip {
+			if v.Ipv4 == ip {
 				return v, true
 			}
 		}
@@ -135,8 +135,8 @@ func (d *DeviceData) GetByIp(ip string) (structs.WifiSession, bool) {
 	return structs.WifiSession{}, false
 }
 
-func (d *DeviceData) unmarshal(rawData []byte) map[string]structs.WifiSession {
-	var sessionData map[string]structs.WifiSession
+func (d *DeviceData) unmarshal(rawData []byte) []structs.WifiSession {
+	var sessionData []structs.WifiSession
 	if err := json.Unmarshal(rawData, &sessionData); err != nil {
 		ddLogger.WithFields(logrus.Fields{
 			"rawData": string(rawData),
@@ -184,7 +184,12 @@ SESSION_LOOP:
 			username2DevicesMap[userInfo.Name] = entry
 		}
 
-		device := structs.Devices{Name: userInfo.DeviceName, Location: d.findLocation(wifiSession.AP)}
+		location := wifiSession.Location
+		if len(location) == 0 {
+			// location attribute not set, resolve the location by the access point id
+			location = d.findLocation(wifiSession.AP)
+		}
+		device := structs.Devices{Name: userInfo.DeviceName, Location: location}
 		entry.devices = append(entry.devices, device)
 
 		if userInfo.Visibility == db.VisibilityIgnore {

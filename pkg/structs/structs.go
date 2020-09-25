@@ -5,11 +5,11 @@ import (
 )
 
 type WifiSession struct {
-	Ip   string
-	Ipv6 []string
-	Mac  string
-	Vlan string
-	AP   int
+	Ipv4     string
+	Ipv6     []string
+	Mac      string
+	AP       int
+	Location string
 }
 
 type Devices struct {

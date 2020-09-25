@@ -125,6 +125,10 @@ func (h *MqttHandler) onConnect(client mqtt.Client) {
 			}
 
 			/*
+			[{"ipv4": "192.99.99.99", "ipv6": "", "mac": "18:fe:ab:ab:ab:ab", "ap": 105, "location": "Space"} ]
+			 */
+
+			/*
 							mock := []byte(`{  "38134": {
 				    "last-auth": 1509211121,
 				    "vlan": "default",

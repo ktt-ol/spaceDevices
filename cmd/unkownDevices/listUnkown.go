@@ -40,7 +40,7 @@ func main() {
 			name = "Unknown"
 		}
 		fmt.Printf("%s %s\n", fmt.Sprintf(InfoColor, s.Mac), name)
-		fmt.Printf("-> %s // %s\n", s.Ip, s.Ipv6)
+		fmt.Printf("-> %s // %s\n", s.Ipv4, s.Ipv6)
 		jsonEntry := fmt.Sprintf(`"%s":{"name": "%s", "device-type": "", "visibility": "ignore"},`, s.Mac, name)
 		fmt.Println(jsonEntry)
 		fmt.Println("")

@@ -3,116 +3,25 @@ package mqtt
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"testing"
 
 	"github.com/ktt-ol/spaceDevices/internal/conf"
 
 	"github.com/ktt-ol/spaceDevices/internal/db"
-	"github.com/stretchr/testify/assert"
 	"github.com/ktt-ol/spaceDevices/pkg/structs"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_parseWifiSessions(t *testing.T) {
 	const testData = `
-{
-  "38126": {
-    "last-auth": 1509210709,
-    "vlan": "default",
-    "stats": {
-      "rx-multicast-pkts": 499,
-      "rx-unicast-pkts": 1817,
-      "tx-unicast-pkts": 734,
-      "rx-unicast-bytes": 156208,
-      "tx-unicast-bytes": 272461,
-      "rx-multicast-bytes": 76808
-    },
-    "ssid": "mainframe",
-    "ip": "192.168.2.127",
-    "hostname": "-",
-    "last-snr": 40,
-    "last-rate-mbits": "24",
-    "ap": 2,
-    "mac": "2c:0e:3d:aa:aa:aa",
-    "radio": 2,
-    "userinfo": null,
-    "session-start": 1509210709,
-    "last-rssi-dbm": -55,
-    "last-activity": 1509211581
-  },
-  "38134": {
-    "last-auth": 1509211121,
-    "vlan": "default",
-    "stats": {
-      "rx-multicast-pkts": 0,
-      "rx-unicast-pkts": 292,
-      "tx-unicast-pkts": 654,
-      "rx-unicast-bytes": 20510,
-      "tx-unicast-bytes": 278565,
-      "rx-multicast-bytes": 0
-    },
-    "ssid": "mainframe",
-    "ip": "192.168.2.179",
-	"ipv6" : [ "6e7b:c7c6:9517:a9d0:958c:3939:c93e:9864", "e759:68b6:4c7d:8483:81b7:be87:119b:7ee1" ],
-    "hostname": "-",
-    "last-snr": 47,
-    "last-rate-mbits": "6",
-    "ap": 1,
-    "mac": "10:68:3f:bb:bb:bb",
-    "radio": 2,
-    "session-start": 1509211121,
-    "last-rssi-dbm": -48,
-    "last-activity": 1509211584
-  },
-  "38135": {
-    "last-auth": 1509211163,
-    "vlan": "default",
-    "stats": {
-      "rx-multicast-pkts": 114,
-      "rx-unicast-pkts": 8119,
-      "tx-unicast-pkts": 12440,
-      "rx-unicast-bytes": 1093407,
-      "tx-unicast-bytes": 15083985,
-      "rx-multicast-bytes": 20379
-    },
-    "ssid": "mainframe",
-    "ip": "192.168.2.35",
-	"ipv6": [ "325c:7fa7:cc79:bcb7:a2b1:26f6:a4ef:2501" ],
-    "hostname": "happle",
-    "last-snr": 39,
-    "last-rate-mbits": "24",
-    "ap": 1,
-    "mac": "20:c9:d0:cc:cc:cc",
-    "radio": 2,
-    "session-start": 1509211163,
-    "last-rssi-dbm": -56,
-    "last-activity": 1509211584
-  },
-  "38137": {
-    "last-auth": 1509211199,
-    "vlan": "FreiFunk",
-    "stats": {
-      "rx-multicast-pkts": 14,
-      "rx-unicast-pkts": 931,
-      "tx-unicast-pkts": 615,
-      "rx-unicast-bytes": 70172,
-      "tx-unicast-bytes": 265390,
-      "rx-multicast-bytes": 1574
-    },
-    "ssid": "nordwest.freifunk.net",
-    "ip": "10.18.159.6",
-    "hostname": "iPhonevineSager",
-    "last-snr": 13,
-    "last-rate-mbits": "2",
-    "ap": 1,
-    "mac": "b8:53:ac:dd:dd:dd",
-    "radio": 1,
-    "session-start": 1509211199,
-    "last-rssi-dbm": -82,
-    "last-activity": 1509211584
-  }
-}
+	[
+	{"ipv4": "192.168.2.127", "ipv6": [], "mac": "2c:0e:3d:aa:aa:aa", "ap": 2, "location": "Space"},
+	{"ipv4": "192.168.2.179", "ipv6": ["6e7b:c7c6:9517:a9d0:958c:3939:c93e:9864", "e759:68b6:4c7d:8483:81b7:be87:119b:7ee1"], "mac": "10:68:3f:bb:bb:bb", "ap": 1, "location": "Radstelle"},
+	{"ipv4": "192.168.2.35", "ipv6": [ "325c:7fa7:cc79:bcb7:a2b1:26f6:a4ef:2501" ], "mac": "20:c9:d0:cc:cc:cc", "ap": 1, "location": "Space"},
+	{"ipv4": "10.18.159.6", "ipv6": [ ], "mac": "b8:53:ac:dd:dd:dd", "ap": 1, "location": ""}
+	]
 	`
+
 	assert := assert.New(t)
 
 	masterDb := &masterDbTest{}
@@ -120,26 +29,26 @@ func Test_parseWifiSessions(t *testing.T) {
 	dd := DeviceData{masterDb: masterDb, userDb: userDb}
 
 	sessions, _, ok := dd.parseWifiSessions([]byte(testData))
-	assert.Equal(len(sessions), 4)
+	assert.Equal(4, len(sessions))
 	assert.True(ok)
 
 	v := findByIp(assert, sessions, "192.168.2.127")
-	assert.True(v.Mac == "2c:0e:3d:aa:aa:aa" && v.Vlan == "default" && v.AP == 2)
+	assert.True(v.Mac == "2c:0e:3d:aa:aa:aa" && v.AP == 2 && v.Location == "Space")
 	assert.Equal(0, len(v.Ipv6))
 
 	v = findByIp(assert, sessions, "192.168.2.179")
-	assert.True(v.Mac == "10:68:3f:bb:bb:bb" && v.Vlan == "default" && v.AP == 1)
+	assert.True(v.Mac == "10:68:3f:bb:bb:bb"  && v.AP == 1 && v.Location == "Radstelle")
 	assert.Equal(2, len(v.Ipv6))
 	assert.Equal("6e7b:c7c6:9517:a9d0:958c:3939:c93e:9864", v.Ipv6[0])
 	assert.Equal("e759:68b6:4c7d:8483:81b7:be87:119b:7ee1", v.Ipv6[1])
 
 	v = findByIp(assert, sessions, "192.168.2.35")
-	assert.True(v.Mac == "20:c9:d0:cc:cc:cc" && v.Vlan == "default" && v.AP == 1)
+	assert.True(v.Mac == "20:c9:d0:cc:cc:cc"  && v.AP == 1)
 	assert.Equal(1, len(v.Ipv6))
 	assert.Equal("325c:7fa7:cc79:bcb7:a2b1:26f6:a4ef:2501", v.Ipv6[0])
 
 	v = findByIp(assert, sessions, "10.18.159.6")
-	assert.True(v.Mac == "b8:53:ac:dd:dd:dd" && v.Vlan == "FreiFunk" && v.AP == 1)
+	assert.True(v.Mac == "b8:53:ac:dd:dd:dd"  && v.AP == 1 && v.Location == "")
 	assert.Equal(0, len(v.Ipv6))
 
 	// don't fail for garbage
@@ -150,7 +59,7 @@ func Test_parseWifiSessions(t *testing.T) {
 
 func findByIp(assert *assert.Assertions, sessions []structs.WifiSession, ip string) *structs.WifiSession {
 	for _, v := range sessions {
-		if v.Ip == ip {
+		if v.Ipv4 == ip {
 			return &v
 		}
 	}
@@ -239,8 +148,9 @@ func Test_peopleNeverNil(t *testing.T) {
 /****************************************/
 
 type sessionTestType struct {
-	Vlan string  `json:"vlan"`
-	IP   string  `json:"ip"`
+	Location string `Json:"location"`
+	Ipv4   string  `json:"ipv4"`
+	Ipv6 []string `json:"ipv6"`
 	Ap   float64 `json:"ap"`
 	Mac  string  `json:"mac"`
 }
@@ -272,14 +182,14 @@ func (db *masterDbTest) Get(mac string) (db.MasterDbEntry, bool) {
 }
 
 func stt(lastIp string, lastMac string) sessionTestType {
-	return sessionTestType{"vlan", "10.1.1." + lastIp, 1, "00:00:00:00:00:" + lastMac}
+	return sessionTestType{"Space", "10.1.1." + lastIp, make([]string, 0, 0),1, "00:00:00:00:00:" + lastMac}
 }
 
 func newSessionTestData(testData ...sessionTestType) []byte {
-	sessionData := make(map[string]sessionTestType)
+	sessionData := make([]sessionTestType, 0)
 
-	for index, val := range testData {
-		sessionData[strconv.Itoa(index)] = val
+	for _, val := range testData {
+		sessionData = append(sessionData, val)
 	}
 
 	bytes, err := json.Marshal(sessionData)
